@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🇮🇳 AI Bharat Emergency Intelligence
 
-## Getting Started
+### Real-Time Emergency Intelligence & Geospatial Command Center for India
 
-First, run the development server:
+AI Bharat Emergency Intelligence is an advanced real-time emergency monitoring platform designed to unify official disaster alerts, live weather intelligence, risk correlation, incident prioritization, analytics, and interactive geospatial monitoring into a single operational dashboard.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The platform combines government emergency alert data with live weather intelligence and analytical risk signals to help visualize and understand India's evolving emergency situation.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🚨 Core Capabilities
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- 🚨 **Official NDMA SACHET Alert Intelligence**
+- 🌦️ **Live Weather Intelligence across India**
+- 🗺️ **Interactive India Geospatial Command Center**
+- 🧠 **AI-Assisted Emergency Analysis**
+- 🔗 **Multi-Signal Risk Correlation**
+- 🎯 **Incident Priority Queue**
+- 🔎 **Incident Drill-Down**
+- 📍 **Map ↔ Incident Linking**
+- 📊 **Real-Time Operational Statistics**
+- 📈 **Historical Emergency Analytics**
+- 🏥 **System Health & API Monitoring**
+- ⚡ **Automatic Data Refresh & Caching**
+- 🌐 **State-Level Weather Monitoring**
+- 🧩 **Emergency Intelligence Dashboard**
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🧠 Intelligence Architecture
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+                    ┌─────────────────────────┐
+                    │      DATA SOURCES       │
+                    └────────────┬────────────┘
+                                 │
+              ┌──────────────────┴──────────────────┐
+              │                                     │
+              ▼                                     ▼
+      ┌───────────────┐                    ┌────────────────┐
+      │  NDMA SACHET  │                    │   Open-Meteo   │
+      │ Official      │                    │ Live Weather   │
+      │ Alerts        │                    │ Intelligence   │
+      └───────┬───────┘                    └───────┬────────┘
+              │                                    │
+              └────────────────┬───────────────────┘
+                               ▼
+                    ┌──────────────────────┐
+                    │ Intelligence Engine  │
+                    ├──────────────────────┤
+                    │ Alert Analysis       │
+                    │ Weather Signals      │
+                    │ Risk Correlation     │
+                    │ Priority Scoring     │
+                    │ AI Analysis          │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                 ┌───────────────────────────┐
+                 │  Emergency Command Center │
+                 ├───────────────────────────┤
+                 │ India Intelligence Map    │
+                 │ Priority Queue            │
+                 │ Risk Intelligence         │
+                 │ Analytics                 │
+                 │ System Health             │
+                 └───────────────────────────┘
