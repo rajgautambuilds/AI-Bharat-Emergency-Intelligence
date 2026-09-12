@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 type Alert = {
@@ -259,11 +260,14 @@ function buildSituation(
   return `No critical dashboard-derived escalation detected across the currently monitored ${weatherLocations} weather locations. Continue routine monitoring of official sources.`;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
+    /*
+     * IMPORTANT:
+     * Use the actual deployment origin instead of
+     * localhost:3000. This works both locally and on Vercel.
+     */
+    const baseUrl = new URL(request.url).origin;
 
     const [alertsResponse, weatherResponse] = await Promise.all([
       fetch(`${baseUrl}/api/alerts`, {
@@ -441,8 +445,8 @@ export async function GET() {
         if (
           isFloodRelated(alertText) &&
           (isRainRelated(weatherReasons) ||
-            weatherItem.precipitation !== undefined &&
-            number(weatherItem.precipitation) >= 10)
+            (weatherItem.precipitation !== undefined &&
+              number(weatherItem.precipitation) >= 10))
         ) {
           entry.score += 35;
           correlationReason =

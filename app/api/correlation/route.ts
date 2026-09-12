@@ -103,13 +103,11 @@ async function fetchJson(
   return response.json();
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const startedAt = Date.now();
 
   try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
+    const baseUrl = new URL(request.url).origin;
 
     const [
       alertsResult,
