@@ -315,14 +315,7 @@ function getStateName(
   );
 }
 
-function getAlertState(
-  alert: Alert
-): string {
-  return text(
-    alert.area_description ||
-      "Unknown"
-  );
-}
+
 
 function isFloodRelated(
   value: string
