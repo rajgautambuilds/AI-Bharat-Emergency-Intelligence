@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
+const REQUEST_TIMEOUT = 8000;
+const CACHE_SECONDS = 300;
+
 type Alert = {
   severity?: string;
   severity_level?: string;
@@ -45,7 +48,11 @@ type AlertResponse = {
   alerts?: Alert[];
 };
 
-type Priority = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
+type Priority =
+  | "CRITICAL"
+  | "HIGH"
+  | "MODERATE"
+  | "LOW";
 
 type StateAttention = {
   state: string;
@@ -55,28 +62,70 @@ type StateAttention = {
 };
 
 function text(value: unknown): string {
-  return typeof value === "string" ? value : "";
+  return typeof value === "string"
+    ? value
+    : "";
 }
 
 function number(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+  return typeof value === "number" &&
+    Number.isFinite(value)
+    ? value
+    : 0;
 }
 
 function normalize(value: unknown): string {
-  return text(value).trim().toLowerCase();
+  return text(value)
+    .trim()
+    .toLowerCase();
 }
 
-function getAlertScore(alert: Alert): number {
+async function fetchWithTimeout(
+  url: string
+) {
+  const controller =
+    new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, REQUEST_TIMEOUT);
+
+  try {
+    return await fetch(url, {
+      next: {
+        revalidate: CACHE_SECONDS,
+      },
+      headers: {
+        Accept: "application/json",
+      },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function getAlertScore(
+  alert: Alert
+): number {
   const severity = normalize(
-    alert.severity_level || alert.severity
+    alert.severity_level ||
+      alert.severity
   );
 
-  const disaster = normalize(alert.disaster_type);
-  const message = normalize(alert.warning_message);
+  const disaster = normalize(
+    alert.disaster_type
+  );
+
+  const message = normalize(
+    alert.warning_message
+  );
 
   let score = 0;
 
-  // Official severity
+  /*
+   * OFFICIAL SEVERITY
+   */
   if (
     severity.includes("extreme") ||
     severity.includes("critical")
@@ -96,7 +145,9 @@ function getAlertScore(alert: Alert): number {
     score += 20;
   }
 
-  // High-impact hazards
+  /*
+   * HIGH-IMPACT HAZARDS
+   */
   if (
     disaster.includes("flood") ||
     disaster.includes("cyclone") ||
@@ -107,7 +158,9 @@ function getAlertScore(alert: Alert): number {
     score += 20;
   }
 
-  // Emergency language
+  /*
+   * EMERGENCY LANGUAGE
+   */
   if (
     message.includes("evacuation") ||
     message.includes("evacuate") ||
@@ -121,74 +174,129 @@ function getAlertScore(alert: Alert): number {
   return score;
 }
 
-function getPriority(score: number): Priority {
-  if (score >= 100) return "CRITICAL";
-  if (score >= 70) return "HIGH";
-  if (score >= 40) return "MODERATE";
+function getPriority(
+  score: number
+): Priority {
+  if (score >= 100) {
+    return "CRITICAL";
+  }
+
+  if (score >= 70) {
+    return "HIGH";
+  }
+
+  if (score >= 40) {
+    return "MODERATE";
+  }
+
   return "LOW";
 }
 
-function getWeatherRisk(weather: WeatherItem): {
+function getWeatherRisk(
+  weather: WeatherItem
+): {
   score: number;
   reasons: string[];
 } {
   const temperature = number(
-    weather.temperature_2m ?? weather.temperature
+    weather.temperature_2m ??
+      weather.temperature
   );
 
   const humidity = number(
-    weather.relative_humidity_2m ?? weather.humidity
+    weather.relative_humidity_2m ??
+      weather.humidity
   );
 
-  const precipitation = number(weather.precipitation);
+  const precipitation = number(
+    weather.precipitation
+  );
 
   const windSpeed = number(
-    weather.wind_speed_10m ?? weather.windSpeed
+    weather.wind_speed_10m ??
+      weather.windSpeed
   );
 
   const windGust = number(
-    weather.wind_gusts_10m ?? weather.windGust
+    weather.wind_gusts_10m ??
+      weather.windGust
   );
 
   const reasons: string[] = [];
+
   let score = 0;
 
+  /*
+   * TEMPERATURE
+   */
   if (temperature >= 45) {
     score += 50;
-    reasons.push("Extreme heat conditions");
+    reasons.push(
+      "Extreme heat conditions"
+    );
   } else if (temperature >= 42) {
     score += 35;
-    reasons.push("Very high temperature");
+    reasons.push(
+      "Very high temperature"
+    );
   } else if (temperature >= 40) {
     score += 20;
-    reasons.push("High temperature");
+    reasons.push(
+      "High temperature"
+    );
   }
 
+  /*
+   * PRECIPITATION
+   */
   if (precipitation >= 30) {
     score += 45;
-    reasons.push("Heavy precipitation signal");
+    reasons.push(
+      "Heavy precipitation signal"
+    );
   } else if (precipitation >= 15) {
     score += 30;
-    reasons.push("Moderate precipitation signal");
+    reasons.push(
+      "Moderate precipitation signal"
+    );
   } else if (precipitation >= 5) {
     score += 15;
-    reasons.push("Rainfall signal");
+    reasons.push(
+      "Rainfall signal"
+    );
   }
 
+  /*
+   * WIND
+   */
   if (windGust >= 80) {
     score += 45;
-    reasons.push("Very strong wind gusts");
+    reasons.push(
+      "Very strong wind gusts"
+    );
   } else if (windGust >= 60) {
     score += 30;
-    reasons.push("Strong wind gusts");
+    reasons.push(
+      "Strong wind gusts"
+    );
   } else if (windSpeed >= 40) {
     score += 20;
-    reasons.push("High wind speed");
+    reasons.push(
+      "High wind speed"
+    );
   }
 
-  if (humidity >= 90 && precipitation >= 10) {
+  /*
+   * HUMIDITY + RAIN
+   */
+  if (
+    humidity >= 90 &&
+    precipitation >= 10
+  ) {
     score += 15;
-    reasons.push("High humidity with rainfall");
+    reasons.push(
+      "High humidity with rainfall"
+    );
   }
 
   return {
@@ -197,15 +305,28 @@ function getWeatherRisk(weather: WeatherItem): {
   };
 }
 
-function getStateName(weather: WeatherItem): string {
-  return text(weather.state || weather.name || "Unknown");
+function getStateName(
+  weather: WeatherItem
+): string {
+  return text(
+    weather.state ||
+      weather.name ||
+      "Unknown"
+  );
 }
 
-function getAlertState(alert: Alert): string {
-  return text(alert.area_description || "Unknown");
+function getAlertState(
+  alert: Alert
+): string {
+  return text(
+    alert.area_description ||
+      "Unknown"
+  );
 }
 
-function isFloodRelated(value: string): boolean {
+function isFloodRelated(
+  value: string
+): boolean {
   return (
     value.includes("flood") ||
     value.includes("flash flood") ||
@@ -213,7 +334,9 @@ function isFloodRelated(value: string): boolean {
   );
 }
 
-function isStormRelated(value: string): boolean {
+function isStormRelated(
+  value: string
+): boolean {
   return (
     value.includes("storm") ||
     value.includes("cyclone") ||
@@ -223,7 +346,9 @@ function isStormRelated(value: string): boolean {
   );
 }
 
-function isHeatRelated(value: string): boolean {
+function isHeatRelated(
+  value: string
+): boolean {
   return (
     value.includes("heat") ||
     value.includes("hot") ||
@@ -231,7 +356,9 @@ function isHeatRelated(value: string): boolean {
   );
 }
 
-function isRainRelated(value: string): boolean {
+function isRainRelated(
+  value: string
+): boolean {
   return (
     value.includes("rain") ||
     value.includes("heavy rainfall") ||
@@ -245,37 +372,53 @@ function buildSituation(
   weatherLocations: number,
   attentionStates: StateAttention[]
 ): string {
-  if (overallLevel === "CRITICAL") {
+  if (
+    overallLevel === "CRITICAL"
+  ) {
     return `Critical intelligence conditions detected across the monitored network. ${officialAlerts} official alert signals and ${attentionStates.length} high-attention state signals require priority review.`;
   }
 
-  if (overallLevel === "HIGH") {
-    return `Elevated emergency conditions are being observed. Official alerts and environmental signals indicate multiple areas requiring operational attention.`;
+  if (
+    overallLevel === "HIGH"
+  ) {
+    return "Elevated emergency conditions are being observed. Official alerts and environmental signals indicate multiple areas requiring operational attention.";
   }
 
-  if (overallLevel === "MODERATE") {
-    return `Moderate emergency activity is present across the monitored network. Continue active monitoring of official alerts and environmental conditions.`;
+  if (
+    overallLevel === "MODERATE"
+  ) {
+    return "Moderate emergency activity is present across the monitored network. Continue active monitoring of official alerts and environmental conditions.";
   }
 
   return `No critical dashboard-derived escalation detected across the currently monitored ${weatherLocations} weather locations. Continue routine monitoring of official sources.`;
 }
 
-export async function GET(request: Request) {
+export async function GET(
+  request: Request
+) {
+  const startedAt = Date.now();
+
   try {
     /*
-     * IMPORTANT:
-     * Use the actual deployment origin instead of
-     * localhost:3000. This works both locally and on Vercel.
+     * Use the actual deployment origin.
+     * Works locally and on Vercel.
      */
-    const baseUrl = new URL(request.url).origin;
+    const baseUrl =
+      new URL(request.url).origin;
 
-    const [alertsResponse, weatherResponse] = await Promise.all([
-      fetch(`${baseUrl}/api/alerts`, {
-        next: { revalidate: 300 },
-      }),
-      fetch(`${baseUrl}/api/weather`, {
-        next: { revalidate: 300 },
-      }),
+    /*
+     * Fetch both sources concurrently.
+     */
+    const [
+      alertsResponse,
+      weatherResponse,
+    ] = await Promise.all([
+      fetchWithTimeout(
+        `${baseUrl}/api/alerts`
+      ),
+      fetchWithTimeout(
+        `${baseUrl}/api/weather`
+      ),
     ]);
 
     if (!alertsResponse.ok) {
@@ -296,11 +439,18 @@ export async function GET(request: Request) {
     const weatherData =
       (await weatherResponse.json()) as WeatherResponse;
 
-    const alerts = Array.isArray(alertData.alerts)
+    /*
+     * Safely normalize API arrays.
+     */
+    const alerts = Array.isArray(
+      alertData.alerts
+    )
       ? alertData.alerts
       : [];
 
-    const weather = Array.isArray(weatherData.data)
+    const weather = Array.isArray(
+      weatherData.data
+    )
       ? weatherData.data
       : [];
 
@@ -310,23 +460,42 @@ export async function GET(request: Request) {
      * ---------------------------------------------------------
      */
 
-    const alertScores = alerts.map((alert) => {
-      const score = getAlertScore(alert);
+    const alertScores =
+      alerts.map((alert) => {
+        const score =
+          getAlertScore(alert);
 
-      return {
-        alert,
-        score,
-        priority: getPriority(score),
-      };
-    });
+        return {
+          alert,
+          score,
+          priority:
+            getPriority(score),
+          normalizedArea:
+            normalize(
+              alert.area_description
+            ),
+          normalizedAlertText:
+            normalize(
+              `${alert.disaster_type || ""} ${
+                alert.warning_message || ""
+              }`
+            ),
+        };
+      });
 
-    const criticalAlerts = alertScores.filter(
-      (item) => item.priority === "CRITICAL"
-    ).length;
+    const criticalAlerts =
+      alertScores.filter(
+        (item) =>
+          item.priority ===
+          "CRITICAL"
+      ).length;
 
-    const highAlerts = alertScores.filter(
-      (item) => item.priority === "HIGH"
-    ).length;
+    const highAlerts =
+      alertScores.filter(
+        (item) =>
+          item.priority ===
+          "HIGH"
+      ).length;
 
     /*
      * ---------------------------------------------------------
@@ -334,15 +503,23 @@ export async function GET(request: Request) {
      * ---------------------------------------------------------
      */
 
-    const weatherRisks = weather.map((item) => {
-      const risk = getWeatherRisk(item);
+    const weatherRisks =
+      weather.map((item) => {
+        const risk =
+          getWeatherRisk(item);
 
-      return {
-        ...item,
-        riskScore: risk.score,
-        reasons: risk.reasons,
-      };
-    });
+        return {
+          ...item,
+          riskScore:
+            risk.score,
+          reasons:
+            risk.reasons,
+          normalizedState:
+            normalize(
+              getStateName(item)
+            ),
+        };
+      });
 
     /*
      * ---------------------------------------------------------
@@ -350,136 +527,268 @@ export async function GET(request: Request) {
      * ---------------------------------------------------------
      */
 
-    const stateMap = new Map<string, StateAttention>();
+    const stateMap =
+      new Map<
+        string,
+        StateAttention
+      >();
 
-    function ensureState(state: string): StateAttention {
-      const existing = stateMap.get(state);
+    function ensureState(
+      state: string
+    ): StateAttention {
+      const existing =
+        stateMap.get(state);
 
       if (existing) {
         return existing;
       }
 
-      const created: StateAttention = {
-        state,
-        score: 0,
-        level: "LOW",
-        reasons: [],
-      };
+      const created:
+        StateAttention = {
+          state,
+          score: 0,
+          level: "LOW",
+          reasons: [],
+        };
 
-      stateMap.set(state, created);
+      stateMap.set(
+        state,
+        created
+      );
 
       return created;
     }
 
-    // Add weather intelligence
-    for (const item of weatherRisks) {
-      const state = getStateName(item);
+    /*
+     * Add weather intelligence.
+     */
+    for (
+      const item of weatherRisks
+    ) {
+      const state =
+        getStateName(item);
 
-      if (state === "Unknown") continue;
+      if (state === "Unknown") {
+        continue;
+      }
 
-      const entry = ensureState(state);
+      const entry =
+        ensureState(state);
 
-      entry.score += item.riskScore;
+      entry.score +=
+        item.riskScore;
 
-      for (const reason of item.reasons) {
-        if (!entry.reasons.includes(reason)) {
-          entry.reasons.push(reason);
+      for (
+        const reason of item.reasons
+      ) {
+        if (
+          !entry.reasons.includes(
+            reason
+          )
+        ) {
+          entry.reasons.push(
+            reason
+          );
         }
       }
     }
 
-    // Add official alert intelligence
-    for (const item of alertScores) {
-      const state = getAlertState(item.alert);
+    /*
+     * Build a state lookup from the
+     * weather dataset.
+     */
+    const weatherStates =
+      Array.from(
+        new Set(
+          weatherRisks
+            .map(
+              (item) =>
+                item.normalizedState
+            )
+            .filter(Boolean)
+        )
+      );
 
-      if (state === "Unknown") continue;
+    /*
+     * Build alert -> state matches once.
+     *
+     * This avoids scanning the complete
+     * weather array repeatedly for every alert.
+     */
+    const alertsByWeatherState =
+      new Map<
+        string,
+        typeof alertScores
+      >();
 
-      /*
-       * Area descriptions can contain multiple locations.
-       * We use text matching rather than claiming an exact
-       * geographic relationship.
-       */
+    for (
+      const item of alertScores
+    ) {
+      const area =
+        item.normalizedArea;
 
-      for (const weatherItem of weatherRisks) {
-        const weatherState = getStateName(weatherItem);
+      if (!area) {
+        continue;
+      }
 
+      for (
+        const weatherState of
+          weatherStates
+      ) {
         if (
-          weatherState === "Unknown" ||
-          !state
-            .toLowerCase()
-            .includes(weatherState.toLowerCase())
+          !area.includes(
+            weatherState
+          )
         ) {
           continue;
         }
 
-        const entry = ensureState(weatherState);
+        const existing =
+          alertsByWeatherState.get(
+            weatherState
+          );
 
-        entry.score += item.score;
-
-        const alertReason = `${
-          item.alert.disaster_type || "Emergency"
-        } official alert`;
-
-        if (!entry.reasons.includes(alertReason)) {
-          entry.reasons.push(alertReason);
+        if (existing) {
+          existing.push(item);
+        } else {
+          alertsByWeatherState.set(
+            weatherState,
+            [item]
+          );
         }
+      }
+    }
 
-        const alertText = normalize(
-          `${item.alert.disaster_type || ""} ${
-            item.alert.warning_message || ""
-          }`
+    /*
+     * Add official alert intelligence
+     * using the pre-built lookup.
+     */
+    for (
+      const weatherItem of
+        weatherRisks
+    ) {
+      const state =
+        getStateName(
+          weatherItem
         );
 
-        const weatherReasons = weatherItem.reasons
-          .join(" ")
-          .toLowerCase();
+      const normalizedState =
+        weatherItem.normalizedState;
 
-        /*
-         * Correlation bonus:
-         * alert type and environmental signal point
-         * toward a similar hazard.
-         */
+      if (
+        state === "Unknown" ||
+        !normalizedState
+      ) {
+        continue;
+      }
 
-        let correlationReason = "";
+      const matchingAlerts =
+        alertsByWeatherState.get(
+          normalizedState
+        ) ?? [];
+
+      const entry =
+        ensureState(state);
+
+      for (
+        const item of matchingAlerts
+      ) {
+        entry.score +=
+          item.score;
+
+        const alertReason =
+          `${
+            item.alert.disaster_type ||
+            "Emergency"
+          } official alert`;
 
         if (
-          isFloodRelated(alertText) &&
-          (isRainRelated(weatherReasons) ||
-            (weatherItem.precipitation !== undefined &&
-              number(weatherItem.precipitation) >= 10))
+          !entry.reasons.includes(
+            alertReason
+          )
         ) {
-          entry.score += 35;
+          entry.reasons.push(
+            alertReason
+          );
+        }
+
+        /*
+         * Correlation bonus.
+         */
+        const alertText =
+          item.normalizedAlertText;
+
+        const weatherReasons =
+          weatherItem.reasons
+            .join(" ")
+            .toLowerCase();
+
+        let correlationReason =
+          "";
+
+        if (
+          isFloodRelated(
+            alertText
+          ) &&
+          (
+            isRainRelated(
+              weatherReasons
+            ) ||
+            number(
+              weatherItem.precipitation
+            ) >= 10
+          )
+        ) {
+          entry.score +=
+            35;
+
           correlationReason =
             "Flood alert + rainfall signal correlation";
         } else if (
-          isStormRelated(alertText) &&
-          (weatherItem.wind_speed_10m !== undefined ||
-            weatherItem.windSpeed !== undefined) &&
+          isStormRelated(
+            alertText
+          ) &&
+          (
+            weatherItem.wind_speed_10m !==
+              undefined ||
+            weatherItem.windSpeed !==
+              undefined
+          ) &&
           number(
             weatherItem.wind_gusts_10m ??
               weatherItem.windGust
           ) >= 40
         ) {
-          entry.score += 35;
+          entry.score +=
+            35;
+
           correlationReason =
             "Storm alert + strong wind correlation";
         } else if (
-          isHeatRelated(alertText) &&
+          isHeatRelated(
+            alertText
+          ) &&
           number(
             weatherItem.temperature_2m ??
               weatherItem.temperature
           ) >= 40
         ) {
-          entry.score += 35;
+          entry.score +=
+            35;
+
           correlationReason =
             "Heat alert + high temperature correlation";
         }
 
         if (
           correlationReason &&
-          !entry.reasons.includes(correlationReason)
+          !entry.reasons.includes(
+            correlationReason
+          )
         ) {
-          entry.reasons.push(correlationReason);
+          entry.reasons.push(
+            correlationReason
+          );
         }
       }
     }
@@ -490,27 +799,42 @@ export async function GET(request: Request) {
      * ---------------------------------------------------------
      */
 
-    const attentionStates = Array.from(
-      stateMap.values()
-    )
-      .map((state) => {
-        let level: Priority = "LOW";
+    const attentionStates =
+      Array.from(
+        stateMap.values()
+      )
+        .map((state) => {
+          let level:
+            Priority = "LOW";
 
-        if (state.score >= 180) {
-          level = "CRITICAL";
-        } else if (state.score >= 110) {
-          level = "HIGH";
-        } else if (state.score >= 50) {
-          level = "MODERATE";
-        }
+          if (
+            state.score >= 180
+          ) {
+            level = "CRITICAL";
+          } else if (
+            state.score >= 110
+          ) {
+            level = "HIGH";
+          } else if (
+            state.score >= 50
+          ) {
+            level = "MODERATE";
+          }
 
-        return {
-          ...state,
-          level,
-          reasons: state.reasons.slice(0, 5),
-        };
-      })
-      .sort((a, b) => b.score - a.score);
+          return {
+            ...state,
+            level,
+            reasons:
+              state.reasons.slice(
+                0,
+                5
+              ),
+          };
+        })
+        .sort(
+          (a, b) =>
+            b.score - a.score
+        );
 
     /*
      * ---------------------------------------------------------
@@ -518,28 +842,46 @@ export async function GET(request: Request) {
      * ---------------------------------------------------------
      */
 
-    const hazardCounts = new Map<string, number>();
+    const hazardCounts =
+      new Map<
+        string,
+        number
+      >();
 
-    for (const alert of alerts) {
+    for (
+      const alert of alerts
+    ) {
       const hazard =
-        text(alert.disaster_type).trim() ||
+        text(
+          alert.disaster_type
+        ).trim() ||
         "Unknown emergency";
 
       hazardCounts.set(
         hazard,
-        (hazardCounts.get(hazard) || 0) + 1
+        (
+          hazardCounts.get(
+            hazard
+          ) || 0
+        ) + 1
       );
     }
 
-    const topHazards = Array.from(
-      hazardCounts.entries()
-    )
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([hazard, count]) => ({
-        hazard,
-        count,
-      }));
+    const topHazards =
+      Array.from(
+        hazardCounts.entries()
+      )
+        .sort(
+          (a, b) =>
+            b[1] - a[1]
+        )
+        .slice(0, 6)
+        .map(
+          ([hazard, count]) => ({
+            hazard,
+            count,
+          })
+        );
 
     /*
      * ---------------------------------------------------------
@@ -547,22 +889,30 @@ export async function GET(request: Request) {
      * ---------------------------------------------------------
      */
 
-    const correlationSignals: string[] = [];
+    const correlationSignals:
+      string[] = [];
 
-    for (const state of attentionStates) {
+    for (
+      const state of
+        attentionStates
+    ) {
+      const correlations =
+        state.reasons.filter(
+          (reason) =>
+            reason
+              .toLowerCase()
+              .includes(
+                "correlation"
+              )
+        );
+
       if (
-        state.reasons.some((reason) =>
-          reason.toLowerCase().includes("correlation")
-        )
+        correlations.length > 0
       ) {
         correlationSignals.push(
-          `${state.state}: ${state.reasons
-            .filter((reason) =>
-              reason
-                .toLowerCase()
-                .includes("correlation")
-            )
-            .join(", ")}`
+          `${state.state}: ${correlations.join(
+            ", "
+          )}`
         );
       }
     }
@@ -574,25 +924,30 @@ export async function GET(request: Request) {
      */
 
     const topStateScore =
-      attentionStates[0]?.score || 0;
+      attentionStates[0]
+        ?.score || 0;
 
-    let overallLevel: Priority = "LOW";
+    let overallLevel:
+      Priority = "LOW";
 
     if (
       criticalAlerts > 0 ||
       topStateScore >= 180
     ) {
-      overallLevel = "CRITICAL";
+      overallLevel =
+        "CRITICAL";
     } else if (
       highAlerts >= 2 ||
       topStateScore >= 110
     ) {
-      overallLevel = "HIGH";
+      overallLevel =
+        "HIGH";
     } else if (
       alerts.length > 0 ||
       topStateScore >= 50
     ) {
-      overallLevel = "MODERATE";
+      overallLevel =
+        "MODERATE";
     }
 
     /*
@@ -601,21 +956,29 @@ export async function GET(request: Request) {
      * ---------------------------------------------------------
      */
 
-    const recommendations: string[] = [];
+    const recommendations:
+      string[] = [];
 
-    if (criticalAlerts > 0) {
+    if (
+      criticalAlerts > 0
+    ) {
       recommendations.push(
         "Prioritize review of critical official SACHET alerts."
       );
     }
 
-    if (highAlerts > 0) {
+    if (
+      highAlerts > 0
+    ) {
       recommendations.push(
         "Review high-priority official alerts and affected areas."
       );
     }
 
-    if (correlationSignals.length > 0) {
+    if (
+      correlationSignals.length >
+      0
+    ) {
       recommendations.push(
         "Review alert-weather correlation signals for possible escalation."
       );
@@ -623,7 +986,8 @@ export async function GET(request: Request) {
 
     if (
       weatherRisks.some(
-        (item) => item.riskScore >= 45
+        (item) =>
+          item.riskScore >= 45
       )
     ) {
       recommendations.push(
@@ -631,7 +995,9 @@ export async function GET(request: Request) {
       );
     }
 
-    if (recommendations.length === 0) {
+    if (
+      recommendations.length === 0
+    ) {
       recommendations.push(
         "Continue routine monitoring of official emergency sources and environmental conditions."
       );
@@ -639,28 +1005,38 @@ export async function GET(request: Request) {
 
     /*
      * ---------------------------------------------------------
-     * 9. CONFIDENCE
+     * 9. ANALYTICAL CONFIDENCE
      * ---------------------------------------------------------
      *
-     * This is analytical confidence, not probability of an
-     * emergency occurring.
+     * This is analytical confidence,
+     * NOT probability of an emergency.
      */
 
     let confidence = 70;
 
-    if (alerts.length > 0) {
+    if (
+      alerts.length > 0
+    ) {
       confidence += 10;
     }
 
-    if (weather.length > 0) {
+    if (
+      weather.length > 0
+    ) {
       confidence += 10;
     }
 
-    if (correlationSignals.length > 0) {
+    if (
+      correlationSignals.length >
+      0
+    ) {
       confidence += 5;
     }
 
-    confidence = Math.min(confidence, 95);
+    confidence = Math.min(
+      confidence,
+      95
+    );
 
     /*
      * ---------------------------------------------------------
@@ -668,73 +1044,129 @@ export async function GET(request: Request) {
      * ---------------------------------------------------------
      */
 
-    return NextResponse.json({
-      success: true,
+    const responseTimeMs =
+      Date.now() - startedAt;
 
-      generatedAt: new Date().toISOString(),
+    return NextResponse.json(
+      {
+        success: true,
 
-      overallLevel,
+        generatedAt:
+          new Date().toISOString(),
 
-      situation: buildSituation(
+        responseTimeMs,
+
         overallLevel,
-        alerts.length,
-        weather.length,
-        attentionStates
-      ),
 
-      officialAlerts: {
-        total: alerts.length,
-        critical: criticalAlerts,
-        high: highAlerts,
-        moderate: alertScores.filter(
-          (item) => item.priority === "MODERATE"
-        ).length,
-        low: alertScores.filter(
-          (item) => item.priority === "LOW"
-        ).length,
+        situation:
+          buildSituation(
+            overallLevel,
+            alerts.length,
+            weather.length,
+            attentionStates
+          ),
+
+        officialAlerts: {
+          total:
+            alerts.length,
+
+          critical:
+            criticalAlerts,
+
+          high:
+            highAlerts,
+
+          moderate:
+            alertScores.filter(
+              (item) =>
+                item.priority ===
+                "MODERATE"
+            ).length,
+
+          low:
+            alertScores.filter(
+              (item) =>
+                item.priority ===
+                "LOW"
+            ).length,
+        },
+
+        weather: {
+          monitoredLocations:
+            weather.length,
+
+          elevatedRiskLocations:
+            weatherRisks.filter(
+              (item) =>
+                item.riskScore >= 30
+            ).length,
+        },
+
+        topHazards,
+
+        attentionStates:
+          attentionStates.slice(
+            0,
+            10
+          ),
+
+        correlationSignals:
+          correlationSignals.slice(
+            0,
+            10
+          ),
+
+        recommendations,
+
+        confidence,
+
+        disclaimer:
+          "This is dashboard-generated decision-support intelligence based on live weather data and official SACHET alert feeds. It is not an official government warning, emergency declaration, or prediction. Always follow instructions from authorized authorities.",
+
+        sources: {
+          officialAlerts:
+            "NDMA SACHET",
+
+          officialAlertsUrl:
+            "https://sachet.ndma.gov.in/",
+
+          weather:
+            "Open-Meteo",
+
+          map:
+            "OpenStreetMap",
+        },
       },
-
-      weather: {
-        monitoredLocations: weather.length,
-        elevatedRiskLocations:
-          weatherRisks.filter(
-            (item) => item.riskScore >= 30
-          ).length,
-      },
-
-      topHazards,
-
-      attentionStates: attentionStates.slice(0, 10),
-
-      correlationSignals: correlationSignals.slice(
-        0,
-        10
-      ),
-
-      recommendations,
-
-      confidence,
-
-      disclaimer:
-        "This is dashboard-generated decision-support intelligence based on live weather data and official SACHET alert feeds. It is not an official government warning, emergency declaration, or prediction. Always follow instructions from authorized authorities.",
-
-      sources: {
-        officialAlerts: "NDMA SACHET",
-        officialAlertsUrl:
-          "https://sachet.ndma.gov.in/",
-        weather: "Open-Meteo",
-        map: "OpenStreetMap",
-      },
-    });
+      {
+        headers: {
+          "Cache-Control":
+            "public, s-maxage=300, stale-while-revalidate=600",
+        },
+      }
+    );
   } catch (error) {
-    console.error("AI Analyst error:", error);
+    const responseTimeMs =
+      Date.now() - startedAt;
+
+    const isTimeout =
+      error instanceof Error &&
+      error.name ===
+        "AbortError";
+
+    console.error(
+      "AI Analyst error:",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
+
         overallLevel: "LOW",
+
         situation:
           "AI Emergency Analyst is temporarily unable to process live intelligence data.",
+
         officialAlerts: {
           total: 0,
           critical: 0,
@@ -742,22 +1174,40 @@ export async function GET(request: Request) {
           moderate: 0,
           low: 0,
         },
+
         weather: {
           monitoredLocations: 0,
           elevatedRiskLocations: 0,
         },
+
         topHazards: [],
+
         attentionStates: [],
+
         correlationSignals: [],
+
         recommendations: [
           "Check the live data sources and retry the analysis.",
         ],
+
         confidence: 0,
+
         disclaimer:
           "Analyst data is currently unavailable. This dashboard does not replace official emergency warnings.",
-        error: "Unable to generate analyst intelligence",
+
+        error: isTimeout
+          ? "AI Analyst request timed out"
+          : "Unable to generate analyst intelligence",
+
+        responseTimeMs,
       },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          "Cache-Control":
+            "no-store",
+        },
+      }
     );
   }
 }

@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 const REQUEST_TIMEOUT = 8000;
+const CACHE_SECONDS = 300;
 
 type Alert = {
   disaster_type?: string;
@@ -88,7 +89,9 @@ async function fetchJson(
 ) {
   const response =
     await fetchWithTimeout(url, {
-      cache: "no-store",
+      next: {
+        revalidate: CACHE_SECONDS,
+      },
       headers: {
         Accept: "application/json",
       },
@@ -107,8 +110,13 @@ export async function GET(request: Request) {
   const startedAt = Date.now();
 
   try {
-    const baseUrl = new URL(request.url).origin;
+    const baseUrl =
+      new URL(request.url).origin;
 
+    /*
+     * Fetch official alerts and weather
+     * concurrently to reduce total latency.
+     */
     const [
       alertsResult,
       weatherResult,
@@ -193,33 +201,85 @@ export async function GET(request: Request) {
       );
     }
 
-    const states = weather
-      .map((item) => item.state)
-      .filter(
-        (
-          state
-        ): state is string =>
-          Boolean(state)
+    /*
+     * Build unique state list once.
+     */
+    const states = Array.from(
+      new Set(
+        weather
+          .map((item) => item.state)
+          .filter(
+            (
+              state
+            ): state is string =>
+              Boolean(state)
+          )
+      )
+    );
+
+    /*
+     * Build a weather lookup map.
+     * This avoids repeated Array.find() calls.
+     */
+    const weatherByState =
+      new Map<string, Weather>();
+
+    for (const item of weather) {
+      if (!item.state) {
+        continue;
+      }
+
+      weatherByState.set(
+        item.state,
+        item
       );
+    }
+
+    /*
+     * Build an alert lookup map once.
+     *
+     * Previously every state repeatedly scanned
+     * the entire alerts array. This version performs
+     * state matching once and reuses the result.
+     */
+    const alertsByState =
+      new Map<string, Alert[]>();
+
+    for (const alert of alerts) {
+      const matchedState =
+        findState(
+          alert.area_description || "",
+          states
+        );
+
+      if (!matchedState) {
+        continue;
+      }
+
+      const existing =
+        alertsByState.get(
+          matchedState
+        );
+
+      if (existing) {
+        existing.push(alert);
+      } else {
+        alertsByState.set(
+          matchedState,
+          [alert]
+        );
+      }
+    }
 
     const correlations: Correlation[] =
       [];
 
     for (const state of states) {
       const stateAlerts =
-        alerts.filter((alert) =>
-          findState(
-            alert.area_description ||
-              "",
-            [state]
-          )
-        );
+        alertsByState.get(state) ?? [];
 
       const stateWeather =
-        weather.find(
-          (item) =>
-            item.state === state
-        );
+        weatherByState.get(state);
 
       if (!stateWeather) {
         continue;
@@ -547,6 +607,9 @@ export async function GET(request: Request) {
       });
     }
 
+    /*
+     * Highest-risk correlations first.
+     */
     correlations.sort(
       (a, b) =>
         b.score - a.score
