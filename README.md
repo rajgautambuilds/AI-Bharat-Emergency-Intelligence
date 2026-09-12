@@ -9,6 +9,24 @@
 
 🌐 **Live Demo:** https://ai-bharat-emergency-intelligence.vercel.app/
 
+---
+
+## 🖥️ Dashboard Preview
+
+### 🇮🇳 Emergency Intelligence Dashboard
+
+![AI Bharat Emergency Intelligence Dashboard](./screenshots/01-dashboard-overview.png)
+
+### 🗺️ India Emergency Map
+
+![India Emergency Intelligence Map](./screenshots/02-india-map.png)
+
+### 🚨 Incident Priority Queue
+
+![Incident Priority Queue](./screenshots/06-incident-priority.png)
+
+---
+
 AI Bharat Emergency Intelligence is a production-ready emergency intelligence dashboard designed to combine **official disaster alerts, live weather intelligence, geospatial visualization, risk analysis, and incident prioritization** into a single command-center interface for India.
 
 ---
@@ -161,5 +179,5 @@ The dashboard automatically checks for newly available official alerts and surfa
                                ▼
                     ┌──────────────────────┐
                     │ Geospatial Command   │
-                    │ Center / Analytics   │
+                    │ Center / Analytics    │
                     └──────────────────────┘
