@@ -348,6 +348,22 @@ function formatDate(
 }
 
 /* =========================================================
+   SAFE NUMBER FORMATTER
+========================================================= */
+
+function safeFixed(
+  value: unknown,
+  digits = 1,
+  fallback = "—"
+) {
+  const number = Number(value);
+
+  return Number.isFinite(number)
+    ? number.toFixed(digits)
+    : fallback;
+}
+
+/* =========================================================
    PARSE SACHET CENTROID
 ========================================================= */
 
@@ -1098,27 +1114,21 @@ export default function IndiaMap() {
                 <div>
                   🌡️ Temperature:
                   <strong>
-                    ${stateData.temperature.toFixed(
-                      1
-                    )}°C
+                    ${safeFixed(stateData.temperature)}°C
                   </strong>
                 </div>
 
                 <div>
                   🌧️ Precipitation:
                   <strong>
-                    ${stateData.precipitation.toFixed(
-                      1
-                    )} mm
+                    ${safeFixed(stateData.precipitation)} mm
                   </strong>
                 </div>
 
                 <div>
                   💨 Wind Gusts:
                   <strong>
-                    ${stateData.windGusts.toFixed(
-                      1
-                    )} km/h
+                    ${safeFixed(stateData.windGusts)} km/h
                   </strong>
                 </div>
 
@@ -1223,10 +1233,12 @@ export default function IndiaMap() {
     return (
       <SafeMarkerClusterGroup
         chunkedLoading={true}
-        spiderfyOnMaxZoom={true}
+        spiderfyOnMaxZoom={false}
         showCoverageOnHover={false}
         zoomToBoundsOnClick={true}
-        removeOutsideVisibleBounds={true}
+        removeOutsideVisibleBounds={false}
+        animate={false}
+        animateAddingMarkers={false}
         maxClusterRadius={50}
       >
         {weather.map(
@@ -1296,9 +1308,7 @@ export default function IndiaMap() {
                       <p>
                         🌡️ Temperature:{" "}
                         <strong>
-                          {item.temperature.toFixed(
-                            1
-                          )}
+                          {safeFixed(item.temperature)}
                           °C
                         </strong>
                       </p>
@@ -1306,9 +1316,7 @@ export default function IndiaMap() {
                       <p>
                         🌡️ Feels Like:{" "}
                         <strong>
-                          {item.apparentTemperature.toFixed(
-                            1
-                          )}
+                          {safeFixed(item.apparentTemperature)}
                           °C
                         </strong>
                       </p>
@@ -1323,9 +1331,7 @@ export default function IndiaMap() {
                       <p>
                         🌧️ Precipitation:{" "}
                         <strong>
-                          {item.precipitation.toFixed(
-                            1
-                          )}
+                          {safeFixed(item.precipitation)}
                           mm
                         </strong>
                       </p>
@@ -1333,9 +1339,7 @@ export default function IndiaMap() {
                       <p>
                         💨 Wind:{" "}
                         <strong>
-                          {item.windSpeed.toFixed(
-                            1
-                          )}
+                          {safeFixed(item.windSpeed)}
                           km/h
                         </strong>
                       </p>
@@ -1343,9 +1347,9 @@ export default function IndiaMap() {
                       <p>
                         💨 Gusts:{" "}
                         <strong>
-                          {item.windGusts.toFixed(
-                            1
-                          )}
+                          {Number.isFinite(Number(item.windGusts))
+                            ? Number(item.windGusts).toFixed(1)
+                            : "—"}{" "}
                           km/h
                         </strong>
                       </p>
@@ -1407,10 +1411,12 @@ export default function IndiaMap() {
     return (
       <SafeMarkerClusterGroup
         chunkedLoading={true}
-        spiderfyOnMaxZoom={true}
+        spiderfyOnMaxZoom={false}
         showCoverageOnHover={false}
         zoomToBoundsOnClick={true}
-        removeOutsideVisibleBounds={true}
+        removeOutsideVisibleBounds={false}
+        animate={false}
+        animateAddingMarkers={false}
         maxClusterRadius={55}
       >
         {filteredAlerts.map(
