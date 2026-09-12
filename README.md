@@ -179,5 +179,5 @@ The dashboard automatically checks for newly available official alerts and surfa
                                ▼
                     ┌──────────────────────┐
                     │ Geospatial Command   │
-                    │ Center / Analytics    │
+                    │ Center / Analytics   │
                     └──────────────────────┘
