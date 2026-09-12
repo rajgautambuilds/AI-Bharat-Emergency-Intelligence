@@ -2,66 +2,159 @@
 
 ### Real-Time Emergency Intelligence & Geospatial Command Center for India
 
-AI Bharat Emergency Intelligence is an advanced real-time emergency monitoring platform designed to unify official disaster alerts, live weather intelligence, risk correlation, incident prioritization, analytics, and interactive geospatial monitoring into a single operational dashboard.
+AI Bharat Emergency Intelligence is a production-ready emergency intelligence dashboard designed to combine **official disaster alerts, live weather intelligence, geospatial visualization, risk analysis, and incident prioritization** into a single command-center interface for India.
 
-The platform combines government emergency alert data with live weather intelligence and analytical risk signals to help visualize and understand India's evolving emergency situation.
-
----
-
-## 🚨 Core Capabilities
-
-- 🚨 **Official NDMA SACHET Alert Intelligence**
-- 🌦️ **Live Weather Intelligence across India**
-- 🗺️ **Interactive India Geospatial Command Center**
-- 🧠 **AI-Assisted Emergency Analysis**
-- 🔗 **Multi-Signal Risk Correlation**
-- 🎯 **Incident Priority Queue**
-- 🔎 **Incident Drill-Down**
-- 📍 **Map ↔ Incident Linking**
-- 📊 **Real-Time Operational Statistics**
-- 📈 **Historical Emergency Analytics**
-- 🏥 **System Health & API Monitoring**
-- ⚡ **Automatic Data Refresh & Caching**
-- 🌐 **State-Level Weather Monitoring**
-- 🧩 **Emergency Intelligence Dashboard**
+🌐 **Live Demo:** https://ai-bharat-emergency-intelligence.vercel.app/
 
 ---
 
-## 🧠 Intelligence Architecture
+## 🚨 What This Project Does
+
+The platform provides a unified view of emergency intelligence across India by combining:
+
+- 🇮🇳 India-wide geospatial visualization
+- 🚨 Official NDMA SACHET alerts
+- 🌦️ Live weather intelligence
+- 🧠 Rule-based emergency risk analysis
+- 📊 Historical emergency analytics
+- 🔎 Incident priority queue
+- 🗺️ Map-to-incident drill-down
+- 📈 Emergency correlations
+- ❤️ System health monitoring
+- 🔔 New-alert notification center
+- ⚡ Production caching and optimized APIs
+
+---
+
+## ✨ Key Features
+
+### 🗺️ Geospatial Emergency Command Center
+
+- Interactive India map
+- State-level weather intelligence
+- Emergency alert visualization
+- Risk-level visualization
+- Map filtering
+- Incident focusing
+- Marker clustering
+- Incident drill-down
+
+### 🚨 Official Emergency Alerts
+
+Official disaster alerts are retrieved from:
+
+**NDMA SACHET**
+
+The dashboard keeps official alerts separate from internally calculated weather-risk signals.
+
+### 🌦️ Live Weather Intelligence
+
+Weather information includes:
+
+- Temperature
+- Feels-like temperature
+- Humidity
+- Precipitation
+- Wind speed
+- Wind gusts
+- Weather conditions
+
+Weather data is used to generate analytical risk signals.
+
+### 🧠 AI Emergency Analyst
+
+The Emergency Analyst evaluates available alert and weather signals to prioritize states requiring attention.
+
+The system considers factors such as:
+
+- Extreme temperatures
+- Heavy precipitation
+- High winds
+- Severe weather
+- Hazard types
+- Emergency language
+- Alert severity
+
+> Risk scores are analytical indicators and are not official government warnings.
+
+### 🚨 Incident Priority Queue
+
+Incidents can be ranked according to their calculated priority.
+
+Operators can:
+
+- Review high-priority incidents
+- Inspect incident details
+- Focus incidents on the map
+- Analyze contributing signals
+
+### 🔗 Map ↔ Incident Intelligence
+
+The dashboard connects the incident queue with the geographical map.
+
+Selecting an incident can focus the corresponding location on the map.
+
+### 📊 Historical Analytics
+
+Historical intelligence provides analytical views for:
+
+- Emergency patterns
+- Risk trends
+- State-level activity
+- Alert distribution
+- Historical comparisons
+
+### 🔎 Emergency Correlation Engine
+
+The correlation engine combines:
+
+**Official alerts + weather signals**
+
+to identify potentially significant combinations such as:
+
+- Flood + heavy rain
+- Storm + high wind
+- Heat + extreme temperature
+- High-severity official alerts
+
+### ❤️ System Health
+
+The system includes API health monitoring for critical services.
+
+Monitored components include:
+
+- Alerts API
+- Weather API
+- Analyst API
+- Correlation API
+
+### 🔔 Alert Notification Center
+
+The dashboard automatically checks for newly available official alerts and surfaces new activity to the operator.
+
+---
+
+## 🏗️ Architecture
 
 ```text
-                    ┌─────────────────────────┐
-                    │      DATA SOURCES       │
-                    └────────────┬────────────┘
-                                 │
-              ┌──────────────────┴──────────────────┐
-              │                                     │
-              ▼                                     ▼
-      ┌───────────────┐                    ┌────────────────┐
-      │  NDMA SACHET  │                    │   Open-Meteo   │
-      │ Official      │                    │ Live Weather   │
-      │ Alerts        │                    │ Intelligence   │
-      └───────┬───────┘                    └───────┬────────┘
-              │                                    │
-              └────────────────┬───────────────────┘
-                               ▼
                     ┌──────────────────────┐
-                    │ Intelligence Engine  │
-                    ├──────────────────────┤
-                    │ Alert Analysis       │
-                    │ Weather Signals      │
-                    │ Risk Correlation     │
-                    │ Priority Scoring     │
-                    │ AI Analysis          │
+                    │   Next.js Dashboard  │
                     └──────────┬───────────┘
                                │
+              ┌────────────────┼────────────────┐
+              │                │                │
+              ▼                ▼                ▼
+        NDMA SACHET       Open-Meteo       Intelligence
+        Official Alerts   Weather Data       APIs
+              │                │                │
+              └────────────────┼────────────────┘
                                ▼
-                 ┌───────────────────────────┐
-                 │  Emergency Command Center │
-                 ├───────────────────────────┤
-                 │ India Intelligence Map    │
-                 │ Priority Queue            │
-                 │ Risk Intelligence         │
-                 │ Analytics                 │
-                 │ System Health             │
-                 └───────────────────────────┘
+                    ┌──────────────────────┐
+                    │ Risk & Correlation   │
+                    │ Intelligence Engine   │
+                    └──────────┬───────────┘
+                               ▼
+                    ┌──────────────────────┐
+                    │ Geospatial Command   │
+                    │ Center / Analytics   │
+                    └──────────────────────┘
