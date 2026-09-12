@@ -2,9 +2,14 @@
 
 ### Real-Time Emergency Intelligence & Geospatial Command Center for India
 
-AI Bharat Emergency Intelligence is a production-ready emergency intelligence dashboard designed to combine **official disaster alerts, live weather intelligence, geospatial visualization, risk analysis, and incident prioritization** into a single command-center interface for India.
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://vercel.com/)
+[![Status](https://img.shields.io/badge/Status-Production-success)](https://ai-bharat-emergency-intelligence.vercel.app/)
 
 🌐 **Live Demo:** https://ai-bharat-emergency-intelligence.vercel.app/
+
+AI Bharat Emergency Intelligence is a production-ready emergency intelligence dashboard designed to combine **official disaster alerts, live weather intelligence, geospatial visualization, risk analysis, and incident prioritization** into a single command-center interface for India.
 
 ---
 
@@ -151,7 +156,7 @@ The dashboard automatically checks for newly available official alerts and surfa
                                ▼
                     ┌──────────────────────┐
                     │ Risk & Correlation   │
-                    │ Intelligence Engine   │
+                    │ Intelligence Engine  │
                     └──────────┬───────────┘
                                ▼
                     ┌──────────────────────┐
