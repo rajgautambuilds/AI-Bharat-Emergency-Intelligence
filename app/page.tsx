@@ -4,10 +4,14 @@ import CommandCenter from "./components/CommandCenter";
 import IncidentPriorityQueue from "./components/IncidentPriorityQueue";
 import CorrelationEngine from "./components/CorrelationEngine";
 import SystemHealth from "./components/SystemHealth";
+import AlertNotificationCenter from "./components/AlertNotificationCenter";
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#05070b] text-white">
+      {/* ALERT NOTIFICATION CENTER */}
+      <AlertNotificationCenter />
+
       <div className="mx-auto max-w-[1600px] px-6 py-10">
 
         {/* HEADER */}
